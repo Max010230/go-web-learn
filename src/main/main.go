@@ -16,6 +16,9 @@ func main() {
 	server.GET("/index", func(ctx *mircool.Context) {
 		ctx.String(http.StatusOK, "Hello World!")
 	})
+	server.GET("/find/:name", func(ctx *mircool.Context) {
+		ctx.String(http.StatusOK, ctx.Param("name"))
+	})
 	server.POST("/login", func(c *mircool.Context) {
 		var user User
 		if err := c.BindJson(c.Req.Body, &user); err != nil {
