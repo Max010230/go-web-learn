@@ -7,35 +7,52 @@ import (
 type HandleFunc func(c *Context)
 
 type Engine struct {
+	*RouterGroup
 	router *Router
+	groups []*RouterGroup
 }
 
 func NewServer() *Engine {
-	return &Engine{router: NewRouter()}
+	e := &Engine{router: NewRouter()}
+	e.RouterGroup = &RouterGroup{engine: e}
+	e.groups = []*RouterGroup{e.RouterGroup}
+	return e
 }
 
-func (e *Engine) addRoute(method, path string, handler HandleFunc) {
-	e.router.addRouter(method, path, handler)
+func (group *RouterGroup) Group(path string) *RouterGroup {
+	engine := group.engine
+	newGroup := &RouterGroup{
+		prefix: group.prefix + path,
+		parent: group,
+		engine: engine,
+	}
+	engine.groups = append(engine.groups, newGroup)
+	return newGroup
 }
 
-func (e *Engine) GET(path string, handler HandleFunc) {
-	e.addRoute("GET", path, handler)
+func (group *RouterGroup) addRoute(method, path string, handler HandleFunc) {
+	newPath := group.prefix + path
+	group.engine.router.addRouter(method, newPath, handler)
 }
 
-func (e *Engine) POST(path string, handler HandleFunc) {
-	e.addRoute("POST", path, handler)
+func (group *RouterGroup) GET(path string, handler HandleFunc) {
+	group.addRoute("GET", path, handler)
 }
 
-func (e *Engine) PUT(path string, handler HandleFunc) {
-	e.addRoute("PUT", path, handler)
+func (group *RouterGroup) POST(path string, handler HandleFunc) {
+	group.addRoute("POST", path, handler)
 }
 
-func (e *Engine) DELETE(path string, handler HandleFunc) {
-	e.addRoute("DELETE", path, handler)
+func (group *RouterGroup) PUT(path string, handler HandleFunc) {
+	group.addRoute("PUT", path, handler)
 }
 
-func (e *Engine) PATCH(path string, handler HandleFunc) {
-	e.addRoute("PATCH", path, handler)
+func (group *RouterGroup) DELETE(path string, handler HandleFunc) {
+	group.addRoute("DELETE", path, handler)
+}
+
+func (group *RouterGroup) PATCH(path string, handler HandleFunc) {
+	group.addRoute("PATCH", path, handler)
 }
 
 func (e *Engine) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
@@ -45,4 +62,11 @@ func (e *Engine) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 
 func (e *Engine) Run(addr string) error {
 	return http.ListenAndServe(addr, e)
+}
+
+type RouterGroup struct {
+	prefix      string
+	middleWares []HandleFunc //中间件支持
+	parent      *RouterGroup //父分组
+	engine      *Engine
 }
