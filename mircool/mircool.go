@@ -2,6 +2,7 @@ package mircool
 
 import (
 	"net/http"
+	"strings"
 )
 
 type HandleFunc func(c *Context)
@@ -30,6 +31,10 @@ func (group *RouterGroup) Group(path string) *RouterGroup {
 	return newGroup
 }
 
+func (group *RouterGroup) Use(middlewares ...HandleFunc) {
+	group.middleWares = append(group.middleWares, middlewares...)
+}
+
 func (group *RouterGroup) addRoute(method, path string, handler HandleFunc) {
 	newPath := group.prefix + path
 	group.engine.router.addRouter(method, newPath, handler)
@@ -56,7 +61,14 @@ func (group *RouterGroup) PATCH(path string, handler HandleFunc) {
 }
 
 func (e *Engine) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	var middlewares []HandleFunc
+	for _, group := range e.groups {
+		if strings.HasPrefix(req.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middleWares...)
+		}
+	}
 	context := newContext(resp, req)
+	context.handlers = middlewares
 	e.router.handle(context)
 }
 
