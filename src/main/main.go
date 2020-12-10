@@ -13,6 +13,7 @@ type User struct {
 
 func main() {
 	server := mircool.NewServer()
+	server.Static("/static", "./static")
 	server.Use(mircool.Logger())
 	server.GET("/index", func(ctx *mircool.Context) {
 		ctx.String(http.StatusOK, "Hello World!")

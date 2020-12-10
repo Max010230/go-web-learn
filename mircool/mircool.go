@@ -2,6 +2,7 @@ package mircool
 
 import (
 	"net/http"
+	"path"
 	"strings"
 )
 
@@ -81,4 +82,23 @@ type RouterGroup struct {
 	middleWares []HandleFunc //中间件支持
 	parent      *RouterGroup //父分组
 	engine      *Engine
+}
+
+func (group *RouterGroup) createdStaticHandler(relativePath string, fs http.FileSystem) HandleFunc {
+	absolutePath := path.Join(group.prefix, relativePath)
+	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
+	return func(c *Context) {
+		file := c.Param("filepath")
+		if _, err := fs.Open(file); err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		fileServer.ServeHTTP(c.Resp, c.Req)
+	}
+}
+
+func (group *RouterGroup) Static(relativePath, root string) {
+	handler := group.createdStaticHandler(relativePath, http.Dir(root))
+	urlPatten := path.Join(relativePath, "/*filepath")
+	group.GET(urlPatten, handler)
 }
