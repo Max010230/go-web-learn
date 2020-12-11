@@ -76,6 +76,12 @@ func (c *Context) JSON(code int, obj interface{}) {
 	}
 }
 
+func (c *Context) Fail(code int, message string) {
+	c.SetHeader("Content-Type", "application/json")
+	c.Status(code)
+	c.Resp.Write([]byte(message))
+}
+
 func (c *Context) BindJson(r io.Reader, obj interface{}) error {
 	decoder := json.NewDecoder(r)
 	if err := decoder.Decode(&obj); err != nil {

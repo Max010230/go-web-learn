@@ -15,6 +15,7 @@ func main() {
 	server := mircool.NewServer()
 	server.Static("/static", "./static")
 	server.Use(mircool.Logger())
+	server.Use(mircool.Recovery())
 	server.GET("/index", func(ctx *mircool.Context) {
 		ctx.String(http.StatusOK, "Hello World!")
 	})
